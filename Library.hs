@@ -6,23 +6,23 @@ data Status
   deriving (Eq, Show)
 
 data Book = Book
-  { bookId       :: Int,
-    title        :: String,
-    author       :: String,
-    status       :: Status,
+  { bookId :: Int,
+    title :: String,
+    author :: String,
+    status :: Status,
     borrowerName :: Maybe String
   }
   deriving (Show, Eq)
 
 data User = User
-  { userId   :: Int,
+  { userId :: Int,
     userName :: String
   }
   deriving (Show, Eq)
 
 data Library = Library
-  { books     :: [Book],
-    users     :: [User],
+  { books :: [Book],
+    users :: [User],
     bookCount :: Int,
     userCount :: Int
   }
@@ -31,8 +31,8 @@ data Library = Library
 library :: Library
 library =
   Library
-    { books     = [],
-      users     = [],
+    { books = [],
+      users = [],
       bookCount = 0,
       userCount = 0
     }
@@ -46,32 +46,29 @@ addBook inputTitle inputAuthor inputLibrary =
 
       newBook =
         Book
-          { bookId       = newBookCount,
-            title        = inputTitle,
-            author       = inputAuthor,
-            status       = Available,
+          { bookId = newBookCount,
+            title = inputTitle,
+            author = inputAuthor,
+            status = Available,
             borrowerName = Nothing
           }
    in inputLibrary
-        { books     = books inputLibrary ++ [newBook],
+        { books = books inputLibrary ++ [newBook],
           bookCount = newBookCount
         }
 
 -- Remove a Book
 removeBook :: Int -> Library -> (Library, String)
 removeBook inputBookId inputLibrary =
-  let allBooks    = books inputLibrary
+  let allBooks = books inputLibrary
       targetBooks = [book | book <- allBooks, bookId book == inputBookId]
-      otherBooks  = [book | book <- allBooks, bookId book /= inputBookId]
-  in
-    case targetBooks of
-      [] -> (inputLibrary, "Book ID is invalid!")
-  
-      [book] ->
-        case status book of
-          Borrowed -> (inputLibrary, "Book is borrowed!")
-          Available -> (inputLibrary {books = otherBooks}, "Book removed!")
-
+      otherBooks = [book | book <- allBooks, bookId book /= inputBookId]
+   in case targetBooks of
+        [] -> (inputLibrary, "Book ID is invalid!")
+        [book] ->
+          case status book of
+            Borrowed -> (inputLibrary, "Book is borrowed!")
+            Available -> (inputLibrary {books = otherBooks}, "Book removed!")
 
 -- Borrow Book
 borrowBook :: Int -> Int -> Library -> (Library, String)
@@ -79,15 +76,20 @@ borrowBook inputBookId inputUserId inputLibrary =
   let allBooks = books inputLibrary
       allUsers = users inputLibrary
       targetBooks = [book | book <- allBooks, bookId book == inputBookId]
-      targetUsers  = [user | user <- allUsers, userId user == inputUserId]
-  in
-    case targetBooks of
-      [] -> (inputLibrary, "Book ID is invalid!")
-
-      [book] ->
-        case status book of
-          Borrowed -> (inputLibrary, "Book is borrowed!")
-          Available -> (inputLibrary, "Book is available!")    -- TODO
+      otherBooks = [book | book <- allBooks, bookId book /= inputBookId]
+      targetUsers = [user | user <- allUsers, userId user == inputUserId]
+   in case targetBooks of
+        [] -> (inputLibrary, "Book ID is invalid!")
+        [book] ->
+          case status book of
+            Borrowed -> (inputLibrary, "Book is borrowed!")
+            Available ->
+              case targetUsers of
+                [] -> (inputLibrary, "User ID is invalid!")
+                [user] ->
+                  let name = userName user
+                      updatedLibrary = inputLibrary {books = [book {status = Borrowed, borrowerName = Just name}] ++ otherBooks}
+                   in (updatedLibrary, "Book borrowed!")
 
 -- Return Book
 returnBook :: Int -> Int -> Library -> (Library, String)
@@ -95,16 +97,26 @@ returnBook inputBookId inputUserId inputLibrary =
   let allBooks = books inputLibrary
       allUsers = users inputLibrary
       targetBooks = [book | book <- allBooks, bookId book == inputBookId]
-      targetUsers  = [user | user <- allUsers, userId user == inputUserId]
-  in
-    case targetBooks of
-      [] -> (inputLibrary, "Book ID is invalid!")
-
-      [book] ->
-        case status book of
-          Available -> (inputLibrary, "Book is available!")
-          Borrowed -> (inputLibrary, "Book is borrowed!")  -- TODO
-          
+      otherBooks = [book | book <- allBooks, bookId book /= inputBookId]
+      targetUsers = [user | user <- allUsers, userId user == inputUserId]
+   in case targetBooks of
+        [] -> (inputLibrary, "Book ID is invalid!")
+        [book] ->
+          case status book of
+            Available -> (inputLibrary, "Book is available!")
+            Borrowed ->
+              case targetUsers of
+                [] -> (inputLibrary, "User ID is invalid!")
+                [user] ->
+                  let name = userName user
+                   in case borrowerName book of
+                        Nothing -> (inputLibrary, "Book is not borrowed by anyone!")
+                        Just borrowerName ->
+                          if borrowerName /= name
+                            then (inputLibrary, "Book is not borrowed by this user!")
+                            else
+                              let updatedLibrary = inputLibrary {books = [book {status = Available, borrowerName = Nothing}] ++ otherBooks}
+                               in (updatedLibrary, "Book returned!")
 
 -- Print Available Books
 availableBooks :: [Book] -> IO ()
@@ -150,11 +162,11 @@ addUser inputName inputLibrary =
 
       newUser =
         User
-          { userId       = newUserCount,
-            userName     = inputName
+          { userId = newUserCount,
+            userName = inputName
           }
    in inputLibrary
-        { users     = users inputLibrary ++ [newUser],
+        { users = users inputLibrary ++ [newUser],
           userCount = newUserCount
         }
 
@@ -168,23 +180,19 @@ printUsers (user : otherUsers) = do
   putStrLn "-----------------------------------------"
   printUsers otherUsers
 
-
 -- Remove a User
 removeUser :: Int -> Library -> (Library, String)
 removeUser inputUserId inputLibrary =
-  let allUsers    = users inputLibrary
-      allBooks    = books inputLibrary
-      
-      targetUsers  = [user | user <- allUsers, userId user == inputUserId]
-      otherUsers  = [user | user <- allUsers, userId user /= inputUserId]
-  in
-    case targetUsers of
-      [] -> (inputLibrary, "User ID is invalid!")
+  let allUsers = users inputLibrary
+      allBooks = books inputLibrary
 
-      [user] ->
-        let name = userName user
-            targetBooks = [book | book <- allBooks, borrowerName book == Just name]
-        in
-          case targetBooks of
-            [] -> (inputLibrary {users = otherUsers}, "User removed !")
-            _ -> (inputLibrary, "User has borrowed one or many books !")
+      targetUsers = [user | user <- allUsers, userId user == inputUserId]
+      otherUsers = [user | user <- allUsers, userId user /= inputUserId]
+   in case targetUsers of
+        [] -> (inputLibrary, "User ID is invalid!")
+        [user] ->
+          let name = userName user
+              targetBooks = [book | book <- allBooks, borrowerName book == Just name]
+           in case targetBooks of
+                [] -> (inputLibrary {users = otherUsers}, "User removed !")
+                _ -> (inputLibrary, "User has borrowed one or many books !")
