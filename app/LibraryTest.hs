@@ -151,6 +151,132 @@ testRemoveUserInvalid = TestCase $ do
 	
 	assertEqual "Message should be proper." "User ID is invalid!" message
 	assertEqual "User list should contain 1 item" 1 (length userList)
+
+-- borrowBook Test - Adding one user and one book, check if it is borrowBook modifies the status of the book
+testBorrowBookWithValidUser :: Test
+testBorrowBookWithValidUser = TestCase $ do
+	let currentLibrary :: Library =
+			Library
+				{ books = [],
+					users = [],
+					bookCount = 0,
+					userCount = 0
+				}
+	let updatedlibrary = addBook "Book1" "XYZ" library
+	let updatedlibrary2 = addUser "User1" updatedlibrary
+	let (updatedlibrary3, message) = borrowBook 1 1 updatedlibrary2
+	
+	let bookList   = books updatedlibrary3
+	
+	assertEqual "Message should be proper." "Book borrowed!" message
+	assertEqual "Book list should contain 1 item" 1 (length bookList)
+	assertEqual "Book status should be 1"   Borrowed (status (head bookList))
+	assertEqual "Book borrowerName should be User1"   (Just "User1") (borrowerName (head bookList))
+
+-- borrowBook Test - Adding one user and one book, check if it is borrowBook with invalid user ID should return invalid message
+testBorrowBookWithInalidUser :: Test
+testBorrowBookWithInalidUser = TestCase $ do
+	let currentLibrary :: Library =
+			Library
+				{ books = [],
+					users = [],
+					bookCount = 0,
+					userCount = 0
+				}
+	let updatedlibrary = addBook "Book1" "XYZ" library
+	let updatedlibrary2 = addUser "User1" updatedlibrary
+	let (updatedlibrary3, message) = borrowBook 1 0 updatedlibrary2
+	
+	let bookList   = books updatedlibrary3
+	
+	assertEqual "Message should be proper." "User ID is invalid!" message
+
+-- borrowBook Test - Adding one user and one book, check if it is borrowBook with invalid book ID should return invalid message
+testBorrowBookWithInalidBook :: Test
+testBorrowBookWithInalidBook = TestCase $ do
+	let currentLibrary :: Library =
+			Library
+				{ books = [],
+					users = [],
+					bookCount = 0,
+					userCount = 0
+				}
+	let updatedlibrary = addBook "Book1" "XYZ" library
+	let updatedlibrary2 = addUser "User1" updatedlibrary
+	let (updatedlibrary3, message) = borrowBook 0 1 updatedlibrary2
+	
+	assertEqual "Message should be proper." "Book ID is invalid!" message
+
+-- borrowBook Test - Adding one user and one book, check if it is borrowBook with invalid book ID should return invalid message
+testBorrowBookWithAlreadyBorrowedBook :: Test
+testBorrowBookWithAlreadyBorrowedBook = TestCase $ do
+	let currentLibrary :: Library =
+			Library
+				{ books = [],
+					users = [],
+					bookCount = 0,
+					userCount = 0
+				}
+	let updatedlibrary = addBook "Book1" "XYZ" library
+	let updatedlibrary2 = addUser "User1" updatedlibrary
+	let (updatedlibrary3, message) = borrowBook 1 1 updatedlibrary2
+	let (updatedlibrary4, message2) = borrowBook 1 1 updatedlibrary3
+	
+	assertEqual "Message should be proper." "Book is borrowed!" message2
+
+-- returnBook Test - Adding one user and one book, check if it is returnBook with valid user ID should return valid message
+testReturnBookWithValidUser :: Test
+testReturnBookWithValidUser = TestCase $ do
+	let currentLibrary :: Library =
+			Library
+				{ books = [],
+					users = [],
+					bookCount = 0,
+					userCount = 0
+				}
+	let updatedlibrary = addBook "Book1" "XYZ" library
+	let updatedlibrary2 = addUser "User1" updatedlibrary
+	let (updatedlibrary3, message) = borrowBook 1 1 updatedlibrary2
+	let (updatedlibrary4, message) = returnBook 1 1 updatedlibrary3
+	
+	let bookList   = books updatedlibrary4
+	
+	assertEqual "Book list should contain 1 item" 1 (length bookList)
+	assertEqual "Book status should be 1"   Available (status (head bookList))
+	assertEqual "Message should be proper." "Book returned!" message
+	
+-- returnBook Test - Adding one user and one book, check if it is returnBook with invalid user ID should return invalid message
+testReturnBookWithInvalidUser :: Test
+testReturnBookWithInvalidUser = TestCase $ do
+	let currentLibrary :: Library =
+			Library
+				{ books = [],
+					users = [],
+					bookCount = 0,
+					userCount = 0
+				}
+	let updatedlibrary = addBook "Book1" "XYZ" library
+	let updatedlibrary2 = addUser "User1" updatedlibrary
+	let (updatedlibrary3, message) = borrowBook 1 1 updatedlibrary2
+	let (updatedlibrary4, message) = returnBook 1 0 updatedlibrary3
+	
+	assertEqual "Message should be proper." "User ID is invalid!" message
+
+-- returnBook Test - Adding one user and one book, check if it is returnBook with invalid book ID should return invalid message
+testReturnBookWithInvalidBook :: Test
+testReturnBookWithInvalidBook = TestCase $ do
+	let currentLibrary :: Library =
+			Library
+				{ books = [],
+					users = [],
+					bookCount = 0,
+					userCount = 0
+				}
+	let updatedlibrary = addBook "Book1" "XYZ" library
+	let updatedlibrary2 = addUser "User1" updatedlibrary
+	let (updatedlibrary3, message) = returnBook 0 1 updatedlibrary2
+	
+	assertEqual "Message should be proper." "Book ID is invalid!" message
 	
 tests :: Test
 tests = TestList
@@ -161,7 +287,14 @@ tests = TestList
 	TestLabel "Add one user" testAddOneUser,
 	TestLabel "Add two user" testAddTwoUser,
 	TestLabel "Remove a user" testRemoveUser,
-	TestLabel "Remove an invalid user" testRemoveUserInvalid
+	TestLabel "Remove an invalid user" testRemoveUserInvalid,
+	TestLabel "Borrow a book with a valid user" testBorrowBookWithValidUser,
+	TestLabel "Borrow a book with an invalid user" testBorrowBookWithInalidUser,
+	TestLabel "Borrow a book with an invalid book" testBorrowBookWithInalidBook,
+	TestLabel "Borrow a book with already borrowed book" testBorrowBookWithAlreadyBorrowedBook,
+	TestLabel "Return a book with an valid user" testReturnBookWithValidUser,
+	TestLabel "Return a book with an invalid user" testReturnBookWithInvalidUser,
+	TestLabel "Return a book with an invalid book" testReturnBookWithInvalidBook
   ]
 
 main :: IO Counts
